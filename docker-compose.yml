@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: furniture-db
+    environment:
+      POSTGRES_USER: furniture
+      POSTGRES_PASSWORD: furniture123
+      POSTGRES_DB: furniture
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U furniture -d furniture"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+
+  server:
+    build: ./server
+    container_name: furniture-server
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: furniture
+      DB_PASS: furniture123
+      DB_NAME: furniture
+      JWT_SECRET: furniture-prod-secret-change-me
+      PORT: "3000"
+      UPLOAD_DIR: /app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "3000:3000"
+
+  web:
+    build: ./web
+    container_name: furniture-web
+    depends_on:
+      - server
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:
+  uploads:
